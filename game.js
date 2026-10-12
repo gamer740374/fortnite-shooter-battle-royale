@@ -27,6 +27,50 @@ const tempVec = new THREE.Vector3();
 const playerDirection = new THREE.Vector3();
 const playerRight = new THREE.Vector3();
 
+// GAMEPAD SUPPORT
+const gamepad = {
+  leftStickX: 0,
+  leftStickY: 0,
+  rightStickX: 0,
+  rightStickY: 0,
+  rtTrigger: 0,
+  ltTrigger: 0,
+  aButton: false,
+  bButton: false,
+  xButton: false,
+  yButton: false,
+  rbButton: false,
+  lbButton: false,
+  deadzone: 0.15
+};
+
+function updateGamepadState() {
+  const gamepads = navigator.getGamepads();
+  if (!gamepads[0]) return;
+
+  const pad = gamepads[0];
+
+  // Left stick
+  gamepad.leftStickX = Math.abs(pad.axes[0]) > gamepad.deadzone ? pad.axes[0] : 0;
+  gamepad.leftStickY = Math.abs(pad.axes[1]) > gamepad.deadzone ? pad.axes[1] : 0;
+
+  // Right stick
+  gamepad.rightStickX = Math.abs(pad.axes[2]) > gamepad.deadzone ? pad.axes[2] : 0;
+  gamepad.rightStickY = Math.abs(pad.axes[3]) > gamepad.deadzone ? pad.axes[3] : 0;
+
+  // Buttons
+  gamepad.aButton = pad.buttons[0].pressed;
+  gamepad.bButton = pad.buttons[1].pressed;
+  gamepad.xButton = pad.buttons[2].pressed;
+  gamepad.yButton = pad.buttons[3].pressed;
+  gamepad.lbButton = pad.buttons[4].pressed;
+  gamepad.rbButton = pad.buttons[5].pressed;
+
+  // Triggers
+  gamepad.rtTrigger = pad.buttons[7].value;
+  gamepad.ltTrigger = pad.buttons[6].value;
+}
+
 const worldSize = 180;
 let gameOver = false;
 let roundTime = 0;
@@ -345,15 +389,26 @@ function updateTracers(delta) {
 }
 
 function updatePlayerMovement(delta) {
+  updateGamepadState();
+
+  // KEYBOARD INPUT
   const moveForward = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
   const moveSide = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
+
+  // GAMEPAD INPUT (LEFT STICK)
+  const gamepadForward = -gamepad.leftStickY;
+  const gamepadSide = gamepad.leftStickX;
+
+  // COMBINED INPUT
+  const totalForward = moveForward + gamepadForward;
+  const totalSide = moveSide + gamepadSide;
 
   playerDirection.set(Math.sin(player.yaw), 0, Math.cos(player.yaw));
   playerRight.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
 
   const movement = new THREE.Vector3();
-  movement.addScaledVector(playerDirection, moveForward);
-  movement.addScaledVector(playerRight, moveSide);
+  movement.addScaledVector(playerDirection, totalForward);
+  movement.addScaledVector(playerRight, totalSide);
 
   if (movement.lengthSq() > 0) {
     movement.normalize().multiplyScalar(player.speed * delta);
@@ -366,6 +421,12 @@ function updatePlayerMovement(delta) {
 
   player.fireCooldown = Math.max(0, player.fireCooldown - delta);
   player.hitFlash = Math.max(0, player.hitFlash - delta * 1.5);
+
+  // GAMEPAD RIGHT STICK (CAMERA LOOK)
+  const cameraSensitivity = 3.5;
+  player.yaw -= gamepad.rightStickX * cameraSensitivity * delta;
+  player.pitch -= gamepad.rightStickY * cameraSensitivity * delta;
+  player.pitch = clamp(player.pitch, -1.4, 1.4);
 }
 
 function checkGameState() {
@@ -399,6 +460,16 @@ function animate() {
     spawnEnemiesIfNeeded();
     checkGameState();
     updateHUD();
+
+    // GAMEPAD SHOOTING (RT-TRIGGER)
+    if (gamepad.rtTrigger > 0.5) {
+      fireBullet();
+    }
+
+    // GAMEPAD RESTART (START BUTTON)
+    if (gamepad.aButton) {
+      handleShootInput();
+    }
   }
 
   updateCamera();
@@ -440,6 +511,15 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// GAMEPAD CONNECTED / DISCONNECTED
+window.addEventListener('gamepadconnected', (e) => {
+  console.log('Controller verbunden:', e.gamepad.id);
+});
+
+window.addEventListener('gamepaddisconnected', (e) => {
+  console.log('Controller getrennt');
 });
 
 ui.restartBtn.addEventListener('click', () => {
