@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Battle Royale 3D</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <div class="panel">
+        <span>HP</span>
+        <strong id="health">100</strong>
+      </div>
+      <div class="panel">
+        <span>AMMO</span>
+        <strong id="ammo">30</strong>
+      </div>
+      <div class="panel">
+        <span>ENEMIES</span>
+        <strong id="enemies">0</strong>
+      </div>
+      <div class="panel">
+        <span>ZONE</span>
+        <strong id="zone">80m</strong>
+      </div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="game-over" class="hidden">
+      <h1>Du bist eliminiert</h1>
+      <p id="result-text">Die letzte Runde ist vorbei.</p>
+      <button id="restart-btn">Neu starten</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
